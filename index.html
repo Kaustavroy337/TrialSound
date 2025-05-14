@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Live Count Display</title>
+  <style>
+    body {
+      background-color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    #countDisplay {
+      color: red;
+      font-weight: bold;
+      font-size: 10vw;
+      text-align: center;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="countDisplay">Loading...</div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const supabaseUrl = 'https://pozavkslwdhkqqhlrqdu.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvemF2a3Nsd2Roa3FxaGxycWR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcyNDUxNDksImV4cCI6MjA2MjgyMTE0OX0.qp-JPTrspGgV34tGtNja09YyCzdCD0WYdIdvb0xxDrY';
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const countDisplay = document.getElementById('countDisplay');
+
+    async function fetchLatestCount() {
+      const { data, error } = await supabase
+        .from('table1')
+        .select('count')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error('Error fetching data:', error.message);
+        countDisplay.textContent = 'Error loading data';
+        return;
+      }
+
+      if (data.length > 0) {
+        countDisplay.textContent = data[0].count;
+      } else {
+        countDisplay.textContent = 'No Data';
+      }
+    }
+
+    // Initial fetch
+    fetchLatestCount();
+
+    // Refresh every 3 seconds
+    setInterval(fetchLatestCount, 3000);
+  </script>
+</body>
+</html>
