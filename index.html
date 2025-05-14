@@ -24,6 +24,7 @@
 </head>
 <body>
   <div id="countDisplay">Loading...</div>
+  <audio id="dingSound" src="ding.mp3" preload="auto"></audio>
 
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
@@ -33,6 +34,9 @@
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const countDisplay = document.getElementById('countDisplay');
+    const dingSound = document.getElementById('dingSound');
+
+    let lastCount = null;
 
     async function fetchLatestCount() {
       const { data, error } = await supabase
@@ -48,16 +52,23 @@
       }
 
       if (data.length > 0) {
-        countDisplay.textContent = data[0].count;
+        const newCount = data[0].count;
+        countDisplay.textContent = newCount;
+
+        // Play sound if count changes
+        if (lastCount !== null && newCount !== lastCount) {
+          dingSound.play().catch((e) => {
+            console.warn('Sound playback failed (maybe user interaction needed):', e);
+          });
+        }
+
+        lastCount = newCount;
       } else {
         countDisplay.textContent = 'No Data';
       }
     }
 
-    // Initial fetch
     fetchLatestCount();
-
-    // Refresh every 3 seconds
     setInterval(fetchLatestCount, 3000);
   </script>
 </body>
