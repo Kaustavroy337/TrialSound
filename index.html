@@ -12,6 +12,7 @@
       align-items: center;
       height: 100vh;
       margin: 0;
+      position: relative;
     }
     #countDisplay {
       color: red;
@@ -20,9 +21,22 @@
       text-align: center;
       width: 100%;
     }
+    #clickToEnable {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: rgba(255,255,255,0.9);
+      font-size: 2em;
+      color: #444;
+      z-index: 10;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
+  <div id="clickToEnable">Click anywhere to enable sound</div>
   <div id="countDisplay">Loading...</div>
   <audio id="dingSound" src="ding.mp3" preload="auto"></audio>
 
@@ -35,8 +49,21 @@
 
     const countDisplay = document.getElementById('countDisplay');
     const dingSound = document.getElementById('dingSound');
+    const clickToEnable = document.getElementById('clickToEnable');
 
     let lastCount = null;
+    let soundEnabled = false;
+
+    clickToEnable.addEventListener('click', () => {
+      dingSound.play().then(() => {
+        dingSound.pause();
+        dingSound.currentTime = 0;
+        soundEnabled = true;
+        clickToEnable.style.display = 'none';
+      }).catch((e) => {
+        alert("Your browser blocked sound. Please try clicking again.");
+      });
+    });
 
     async function fetchLatestCount() {
       const { data, error } = await supabase
@@ -55,11 +82,8 @@
         const newCount = data[0].count;
         countDisplay.textContent = newCount;
 
-        // Play sound if count changes
-        if (lastCount !== null && newCount !== lastCount) {
-          dingSound.play().catch((e) => {
-            console.warn('Sound playback failed (maybe user interaction needed):', e);
-          });
+        if (lastCount !== null && newCount !== lastCount && soundEnabled) {
+          dingSound.play().catch((e) => console.warn("Sound failed:", e));
         }
 
         lastCount = newCount;
