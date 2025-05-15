@@ -89,14 +89,22 @@
       setInterval(fetchLatestCount, 3000);
     }
 
-    startButton.addEventListener("click", () => {
-      // Unlock AudioContext
-      ding.play().then(() => {
-        ding.pause(); // Preload and pause immediately
-        ding.currentTime = 0;
-      });
-      startApp();
-    });
-  </script>
-</body>
-</html>
+   function triggerStart() {
+  ding.play().then(() => {
+    ding.pause();
+    ding.currentTime = 0;
+    startApp();
+  }).catch(err => {
+    console.warn("Autoplay blocked:", err);
+  });
+}
+
+// Button click or external trigger will call this
+startButton.addEventListener("click", triggerStart);
+
+// Also allow triggering via postMessage from Yodeck
+window.addEventListener("message", (event) => {
+  if (event.data === "START_DISPLAY") {
+    triggerStart();
+  }
+});
