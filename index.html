@@ -3,97 +3,100 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Live Count Display</title>
+  <title>Display Count with Sound</title>
   <style>
     body {
-      background-color: #fff;
+      margin: 0;
+      background: #000;
+      color: red;
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
-      margin: 0;
-      position: relative;
-    }
-    #countDisplay {
-      color: red;
+      font-size: 6rem;
       font-weight: bold;
-      font-size: 10vw;
       text-align: center;
-      width: 100%;
+      flex-direction: column;
     }
-    #clickToEnable {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: rgba(255,255,255,0.9);
-      font-size: 2em;
-      color: #444;
-      z-index: 10;
+    #startButton {
+      font-size: 2rem;
+      padding: 1rem 2rem;
+      background-color: red;
+      color: white;
+      border: none;
+      border-radius: 10px;
       cursor: pointer;
+      margin-top: 2rem;
     }
   </style>
 </head>
 <body>
-  <div id="clickToEnable">Click anywhere to enable sound</div>
-  <div id="countDisplay">Loading...</div>
-  <audio id="dingSound" src="ding.mp3" preload="auto"></audio>
+  <div id="screen1">
+    <div>Press the button to start</div>
+    <button id="startButton">Start Display</button>
+  </div>
+
+  <div id="screen2" style="display: none;">
+    <div id="countDisplay">Loading...</div>
+  </div>
+
+  <audio id="ding" src="ding.mp3" preload="auto"></audio>
 
   <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-    const supabaseUrl = 'https://pozavkslwdhkqqhlrqdu.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvemF2a3Nsd2Roa3FxaGxycWR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcyNDUxNDksImV4cCI6MjA2MjgyMTE0OX0.qp-JPTrspGgV34tGtNja09YyCzdCD0WYdIdvb0xxDrY';
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const SUPABASE_URL = 'https://pozavkslwdhkqqhlrqdu.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvemF2a3Nsd2Roa3FxaGxycWR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcyNDUxNDksImV4cCI6MjA2MjgyMTE0OX0.qp-JPTrspGgV34tGtNja09YyCzdCD0WYdIdvb0xxDrY';
 
-    const countDisplay = document.getElementById('countDisplay');
-    const dingSound = document.getElementById('dingSound');
-    const clickToEnable = document.getElementById('clickToEnable');
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    let lastCount = null;
-    let soundEnabled = false;
+    const ding = document.getElementById("ding");
+    const countDisplay = document.getElementById("countDisplay");
+    const startButton = document.getElementById("startButton");
 
-    clickToEnable.addEventListener('click', () => {
-      dingSound.play().then(() => {
-        dingSound.pause();
-        dingSound.currentTime = 0;
-        soundEnabled = true;
-        clickToEnable.style.display = 'none';
-      }).catch((e) => {
-        alert("Your browser blocked sound. Please try clicking again.");
-      });
-    });
+    let lastTimestamp = null;
 
     async function fetchLatestCount() {
       const { data, error } = await supabase
-        .from('table1')
-        .select('count')
-        .order('created_at', { ascending: false })
+        .from("table1")
+        .select("count, created_at")
+        .order("created_at", { ascending: false })
         .limit(1);
 
       if (error) {
-        console.error('Error fetching data:', error.message);
-        countDisplay.textContent = 'Error loading data';
+        console.error("Fetch error:", error);
         return;
       }
 
       if (data.length > 0) {
-        const newCount = data[0].count;
-        countDisplay.textContent = newCount;
-
-        if (lastCount !== null && newCount !== lastCount && soundEnabled) {
-          dingSound.play().catch((e) => console.warn("Sound failed:", e));
+        const { count, created_at } = data[0];
+        if (created_at !== lastTimestamp) {
+          lastTimestamp = created_at;
+          countDisplay.textContent = count;
+          ding.play().catch((err) => console.warn("Sound blocked:", err));
         }
-
-        lastCount = newCount;
-      } else {
-        countDisplay.textContent = 'No Data';
       }
     }
 
-    fetchLatestCount();
-    setInterval(fetchLatestCount, 3000);
+    function startApp() {
+      document.getElementById("screen1").style.display = "none";
+      document.getElementById("screen2").style.display = "flex";
+
+      // Initial fetch
+      fetchLatestCount();
+
+      // Polling every 3 seconds
+      setInterval(fetchLatestCount, 3000);
+    }
+
+    startButton.addEventListener("click", () => {
+      // Unlock AudioContext
+      ding.play().then(() => {
+        ding.pause(); // Preload and pause immediately
+        ding.currentTime = 0;
+      });
+      startApp();
+    });
   </script>
 </body>
 </html>
